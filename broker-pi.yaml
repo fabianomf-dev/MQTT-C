@@ -1,0 +1,123 @@
+# ============================================================
+# 🚀 API REST — Backend principal FastAPI
+# ============================================================
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: broker-pi
+  namespace: default
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: broker-pi
+  template:
+    metadata:
+      labels:
+        app: broker-pi
+    spec:
+      serviceAccountName: broker-pi-admin
+
+      containers:
+        - name: broker-pi
+          image: broker-pi:latest
+          imagePullPolicy: IfNotPresent
+
+          # ============================
+          # 🌍 VARIÁVEIS DE AMBIENTE COMPLETAS
+          # ============================
+          env:
+            
+            # --- Redis ---
+            - name: MQTT_HOST
+              valueFrom:
+                configMapKeyRef:
+                  name: db-config
+                  key: MQTT_HOST
+
+            - name: MQTT_PORT
+              valueFrom:
+                configMapKeyRef:
+                  name: db-config
+                  key: MQTT_PORT
+            - name: MQTT_PASS
+              valueFrom:
+                secretKeyRef:
+                  name: db-secrets
+                  key: MQTT_PASS
+
+            # --- PostgreSQL ---
+            - name: MQTT_USER
+              valueFrom:
+                configMapKeyRef:
+                  name: db-config
+                  key: MQTT_USER
+
+            - name: TOPIC_PUB
+              valueFrom:
+                configMapKeyRef:
+                  name: db-config
+                  key: TOPIC_PUB
+
+            - name: TOPIC_SUB
+              valueFrom:
+                configMapKeyRef:
+                  name: db-config
+                  key: TOPIC_SUB
+
+            - name: API_PORT
+              valueFrom:
+                secretKeyRef:
+                  name: db-config
+                  key: API_PORT
+            - name: PI_TIMEOUT
+              valueFrom:
+                secretKeyRef:
+                  name: db-config
+                  key: PI_TIMEOUT
+
+           
+
+            # --- jwt ---
+            - name: JWT_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: db-secrets
+                  key: JWT_SECRET
+
+           
+          # ============================
+          # 🚪 PORTAS DO CONTAINER
+          # ============================
+          ports:
+            - name: http
+              containerPort: 8008
+
+          # ============================
+          # ⚙️ RECURSOS
+          # ============================
+          resources:
+            requests:
+              cpu: "200m"
+              memory: "256Mi"
+            limits:
+              cpu: "1"
+              memory: "512Mi"
+
+---
+# ============================================================
+# 🌐 SERVICE — Exposto via NodePort 30800
+# ============================================================
+apiVersion: v1
+kind: Service
+metadata:
+  name: broker-pi
+spec:
+  selector:
+    app: broker-pi
+  ports:
+    - name: http
+      port: 8008
+      targetPort: 8008
+      nodePort: 30808
+  type: NodePort  # 🔓 exposto externamente (porta 30808)
