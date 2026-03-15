@@ -1,5 +1,5 @@
 # ============================================================
-# 🚀 API REST — Backend principal FastAPI
+# 🚀 Deployment — broker-pi
 # ============================================================
 apiVersion: apps/v1
 kind: Deployment
@@ -24,11 +24,11 @@ spec:
           imagePullPolicy: IfNotPresent
 
           # ============================
-          # 🌍 VARIÁVEIS DE AMBIENTE COMPLETAS
+          # 🌍 Variáveis de ambiente
           # ============================
           env:
-            
-            # --- Redis ---
+
+            # --- MQTT ---
             - name: MQTT_HOST
               valueFrom:
                 configMapKeyRef:
@@ -40,19 +40,20 @@ spec:
                 configMapKeyRef:
                   name: db-config
                   key: MQTT_PORT
-            - name: MQTT_PASS
-              valueFrom:
-                secretKeyRef:
-                  name: db-secrets
-                  key: MQTT_PASS
 
-            # --- PostgreSQL ---
             - name: MQTT_USER
               valueFrom:
                 configMapKeyRef:
                   name: db-config
                   key: MQTT_USER
 
+            - name: MQTT_PASS
+              valueFrom:
+                secretKeyRef:
+                  name: db-secrets
+                  key: MQTT_PASS
+
+            # --- Tópicos ---
             - name: TOPIC_PUB
               valueFrom:
                 configMapKeyRef:
@@ -65,36 +66,35 @@ spec:
                   name: db-config
                   key: TOPIC_SUB
 
+            # --- API --- (corrigido: eram secretKeyRef por engano)
             - name: API_PORT
               valueFrom:
-                secretKeyRef:
+                configMapKeyRef:
                   name: db-config
                   key: API_PORT
+
             - name: PI_TIMEOUT
               valueFrom:
-                secretKeyRef:
+                configMapKeyRef:
                   name: db-config
                   key: PI_TIMEOUT
 
-           
-
-            # --- jwt ---
+            # --- JWT ---
             - name: JWT_SECRET
               valueFrom:
                 secretKeyRef:
                   name: db-secrets
                   key: JWT_SECRET
 
-           
           # ============================
-          # 🚪 PORTAS DO CONTAINER
+          # 🚪 Portas
           # ============================
           ports:
             - name: http
               containerPort: 8008
 
           # ============================
-          # ⚙️ RECURSOS
+          # ⚙️ Recursos
           # ============================
           resources:
             requests:
@@ -106,7 +106,7 @@ spec:
 
 ---
 # ============================================================
-# 🌐 SERVICE — Exposto via NodePort 30800
+# 🌐 Service — NodePort 30808
 # ============================================================
 apiVersion: v1
 kind: Service
@@ -120,4 +120,4 @@ spec:
       port: 8008
       targetPort: 8008
       nodePort: 30808
-  type: NodePort  # 🔓 exposto externamente (porta 30808)
+  type: NodePort
